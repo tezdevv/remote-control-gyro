@@ -30,6 +30,11 @@ const unsigned long debounceDelay = 250;
 
 Servo servoAtas, servoTengah, servoBawah;
 
+//normalize servo
+int posAtas = 90;
+int posTengah = 90;
+int posBawah = 90;
+
 int accX;
 int accY;
 
@@ -233,31 +238,48 @@ void blGyro() {
   Serial.println(move);
 }
 
-void wire() {
+void wireGyro() {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  accX = map((int)a.acceleration.x, -10, 10, 180, 0);
-  accY = map((int)a.acceleration.y, -10, 10, 180, 0);
+  int accX = constrain(map((int)a.acceleration.x, -10, 10, 180, 0), 0, 180);
+  int accY = constrain(map((int)a.acceleration.y, -10, 10, 180, 0), 0, 180);
 
-  int sAtas = map(accY, 180, 0, 0, 90);
-  int sTengah = map(accX, 180, 0, 0, 180);
-  // int sBawah= map(accY,,,,)
+  int sAtas = map(accY, 180, 0, 0, 180);
+  int sTengah = map(accX, 90, 0, 0, 100);
+  int sBawah = map(accY, 180, 0, 0, 180);
 
-  if (accX < 60) {
-  } else if (accX > 130) {
-    if (accY < 40) {
-      move = 'r';
-    } else if (accY > 140) {
-      move = 'l';
-    } else {
-      move = 'b';
+  if (sAtas == 90 || sBawah == 90) {
+    servoAtas.write(90);
+    smoothMove(servoTengah, posTengah, sTengah);
+  } else {
+    if (sTengah >= 80) {
+      smoothMove(servoAtas, posAtas, sAtas);
+    } else if (sTengah >= 0 && sTengah < 80) {
+      smoothMove(servoBawah, posBawah, sBawah);
     }
   }
+
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_10x20_tr);
+  u8g2.drawStr(2, 29, "manut");
+  u8g2.sendBuffer();
+
+  Serial.print("atas = " );
+  Serial.print(sAtas);
+  Serial.print("tengah = " );
+  Serial.println(sTengah);
 }
 
-void wireGyro() {
- 
+void smoothMove(Servo &servo, int &currentPos, int targetPos) {
+  if (currentPos == targetPos) return;
+
+  int step = (targetPos > currentPos) ? 1 : -1;
+  for (int i = currentPos; i != targetPos; i += step) {
+    servo.write(i);
+    delay(5);
+  }
+  currentPos = targetPos;
 }
 
 void txtBLc() {
@@ -286,4 +308,8 @@ void txtWRc() {
   u8g2.setFont(u8g2_font_10x20_tr);
   u8g2.drawStr(2, 29, strWRc);
   u8g2.sendBuffer();
+}
+
+void lenganNormal() {
+  
 }
